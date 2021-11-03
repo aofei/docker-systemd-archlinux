@@ -1,4 +1,4 @@
-FROM archlinux:latest
+FROM archlinux
 
 LABEL maintainer="aofei@aofeisheng.com"
 
@@ -17,4 +17,4 @@ RUN rm -f /lib/systemd/system/multi-user.target.wants/* \
 
 VOLUME /sys/fs/cgroup
 
-CMD /lib/systemd/systemd
+CMD ["/lib/systemd/systemd"]
