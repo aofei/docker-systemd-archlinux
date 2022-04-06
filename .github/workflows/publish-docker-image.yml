@@ -16,9 +16,17 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{github.actor}}
+          password: ${{github.token}}
       - name: Build and push Docker image
         uses: docker/build-push-action@v2
         with:
           context: .
           push: ${{github.event_name != 'pull_request'}}
-          tags: ${{secrets.DOCKER_USERNAME}}/systemd-archlinux
+          tags: |
+            ${{secrets.DOCKER_USERNAME}}/systemd-archlinux:latest
+            ghcr.io/${{github.repository_owner}}/systemd-archlinux:latest
