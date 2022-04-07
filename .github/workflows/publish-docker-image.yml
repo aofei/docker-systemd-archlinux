@@ -11,6 +11,21 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v3
+      - name: Prepare Docker image build metadata
+        id: prepare-docker-image-build-metadata
+        run: |
+          DOCKER_IMAGE_TAG=$(curl -fsSL https://hub.docker.com/v2/repositories/library/archlinux/tags | jq -r '.results[].name | select(startswith("base-20"))' | head -1)
+          if [[ ${{github.event_name}} != "pull_request" ]]; then
+            DOCKER_IMAGE_TAG_DOCKER_HUB_EXISTS=$(docker manifest inspect ${{secrets.DOCKER_USERNAME}}/systemd-archlinux:$DOCKER_IMAGE_TAG &> /dev/null && echo 1 || echo 0)
+            DOCKER_IMAGE_TAG_GITHUB_CONTAINER_REGISTRY_EXISTS=$(docker manifest inspect ghcr.io/${{github.repository_owner}}/systemd-archlinux:$DOCKER_IMAGE_TAG &> /dev/null && echo 1 || echo 0)
+            DOCKER_IMAGE_TAG_PUSHABLE=$([[ $DOCKER_IMAGE_TAG_DOCKER_HUB_EXISTS == 0 || $DOCKER_IMAGE_TAG_GITHUB_CONTAINER_REGISTRY_EXISTS == 0 ]] && echo 1 || echo 0)
+          else
+            DOCKER_IMAGE_TAG_PUSHABLE=0
+          fi
+          DOCKER_IMAGE_BUILD_ARG_BASE_IMAGE="archlinux:$DOCKER_IMAGE_TAG"
+          echo "::set-output name=docker-image-tag::$DOCKER_IMAGE_TAG"
+          echo "::set-output name=docker-image-tag-pushable::$DOCKER_IMAGE_TAG_PUSHABLE"
+          echo "::set-output name=docker-image-build-arg-base-image::$DOCKER_IMAGE_BUILD_ARG_BASE_IMAGE"
       - name: Log in to Docker Hub
         uses: docker/login-action@v1
         with:
@@ -23,10 +38,14 @@ jobs:
           username: ${{github.actor}}
           password: ${{github.token}}
       - name: Build and push Docker image
+        if: ${{github.event_name != 'schedule' || steps.prepare-docker-image-build-metadata.outputs.docker-image-tag-pushable == 1}}
         uses: docker/build-push-action@v2
         with:
           context: .
-          push: ${{github.event_name != 'pull_request'}}
+          build-args: BASE_IMAGE=${{steps.prepare-docker-image-build-metadata.outputs.docker-image-build-arg-base-image}}
+          push: ${{steps.prepare-docker-image-build-metadata.outputs.docker-image-tag-pushable == 1}}
           tags: |
+            ${{secrets.DOCKER_USERNAME}}/systemd-archlinux:${{steps.prepare-docker-image-build-metadata.outputs.docker-image-tag}}
             ${{secrets.DOCKER_USERNAME}}/systemd-archlinux:latest
+            ghcr.io/${{github.repository_owner}}/systemd-archlinux:${{steps.prepare-docker-image-build-metadata.outputs.docker-image-tag}}
             ghcr.io/${{github.repository_owner}}/systemd-archlinux:latest
