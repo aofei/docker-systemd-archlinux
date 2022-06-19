@@ -14,4 +14,4 @@ RUN rm -f $(ls -d /lib/systemd/system/sysinit.target.wants/* | grep -v systemd-t
 
 VOLUME ["/sys/fs/cgroup"]
 
-CMD ["/lib/systemd/systemd"]
+ENTRYPOINT ["/lib/systemd/systemd"]
