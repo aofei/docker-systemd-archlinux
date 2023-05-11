@@ -15,16 +15,8 @@ jobs:
         id: prepare-docker-image-build-metadata
         run: |
           DOCKER_IMAGE_TAG=$(curl -fsSL https://hub.docker.com/v2/repositories/library/archlinux/tags | jq -r '.results[].name | select(startswith("base-20"))' | head -1)
-          if [[ ${{github.event_name}} != "pull_request" ]]; then
-            DOCKER_IMAGE_TAG_DOCKER_HUB_EXISTS=$(docker manifest inspect ${{secrets.DOCKER_USERNAME}}/systemd-archlinux:$DOCKER_IMAGE_TAG &> /dev/null && echo 1 || echo 0)
-            DOCKER_IMAGE_TAG_GITHUB_CONTAINER_REGISTRY_EXISTS=$(docker manifest inspect ghcr.io/${{github.repository_owner}}/systemd-archlinux:$DOCKER_IMAGE_TAG &> /dev/null && echo 1 || echo 0)
-            DOCKER_IMAGE_TAG_PUSHABLE=$([[ $DOCKER_IMAGE_TAG_DOCKER_HUB_EXISTS -eq 0 || $DOCKER_IMAGE_TAG_GITHUB_CONTAINER_REGISTRY_EXISTS -eq 0 ]] && echo 1 || echo 0)
-          else
-            DOCKER_IMAGE_TAG_PUSHABLE=0
-          fi
           DOCKER_IMAGE_BUILD_ARG_BASE_IMAGE="archlinux:$DOCKER_IMAGE_TAG"
           echo "DOCKER_IMAGE_TAG=$DOCKER_IMAGE_TAG" >> $GITHUB_OUTPUT
-          echo "DOCKER_IMAGE_TAG_PUSHABLE=$DOCKER_IMAGE_TAG_PUSHABLE" >> $GITHUB_OUTPUT
           echo "DOCKER_IMAGE_BUILD_ARG_BASE_IMAGE=$DOCKER_IMAGE_BUILD_ARG_BASE_IMAGE" >> $GITHUB_OUTPUT
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
@@ -38,12 +30,11 @@ jobs:
           username: ${{github.actor}}
           password: ${{github.token}}
       - name: Build and push Docker image
-        if: ${{github.event_name != 'schedule' || steps.prepare-docker-image-build-metadata.outputs.DOCKER_IMAGE_TAG_PUSHABLE == 1}}
         uses: docker/build-push-action@v3
         with:
           context: .
           build-args: BASE_IMAGE=${{steps.prepare-docker-image-build-metadata.outputs.DOCKER_IMAGE_BUILD_ARG_BASE_IMAGE}}
-          push: ${{steps.prepare-docker-image-build-metadata.outputs.DOCKER_IMAGE_TAG_PUSHABLE == 1}}
+          push: ${{github.event_name != 'pull_request'}}
           tags: |
             ${{secrets.DOCKER_USERNAME}}/systemd-archlinux:${{steps.prepare-docker-image-build-metadata.outputs.DOCKER_IMAGE_TAG}}
             ${{secrets.DOCKER_USERNAME}}/systemd-archlinux:latest
