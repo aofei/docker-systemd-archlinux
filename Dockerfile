@@ -1,6 +1,5 @@
 ARG BASE_IMAGE=archlinux
 FROM $BASE_IMAGE
-
 RUN rm -f $(ls -d /lib/systemd/system/sysinit.target.wants/* | grep -v systemd-tmpfiles-setup) \
 	/etc/systemd/system/*.wants/* \
 	/lib/systemd/system/anaconda.target.wants/* \
@@ -11,7 +10,5 @@ RUN rm -f $(ls -d /lib/systemd/system/sysinit.target.wants/* | grep -v systemd-t
 	/lib/systemd/system/sockets.target.wants/*initctl* \
 	/lib/systemd/system/sockets.target.wants/*udev* \
 	/lib/systemd/system/systemd-update-utmp*
-
-VOLUME ["/sys/fs/cgroup"]
-
+VOLUME /sys/fs/cgroup
 ENTRYPOINT ["/lib/systemd/systemd"]
