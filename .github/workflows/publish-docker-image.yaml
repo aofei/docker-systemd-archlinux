@@ -12,12 +12,11 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
       - name: Prepare Docker image build metadata
-        id: prepare-docker-image-build-metadata
         run: |
           DOCKER_IMAGE_TAG=$(curl -fsSL https://hub.docker.com/v2/repositories/library/archlinux/tags | jq -r '.results[].name | select(startswith("base-20"))' | head -1)
           DOCKER_IMAGE_BUILD_ARG_BASE_IMAGE=archlinux:$DOCKER_IMAGE_TAG
-          echo "DOCKER_IMAGE_TAG=$DOCKER_IMAGE_TAG" >> $GITHUB_OUTPUT
-          echo "DOCKER_IMAGE_BUILD_ARG_BASE_IMAGE=$DOCKER_IMAGE_BUILD_ARG_BASE_IMAGE" >> $GITHUB_OUTPUT
+          echo "DOCKER_IMAGE_TAG=$DOCKER_IMAGE_TAG" >> $GITHUB_ENV
+          echo "DOCKER_IMAGE_BUILD_ARG_BASE_IMAGE=$DOCKER_IMAGE_BUILD_ARG_BASE_IMAGE" >> $GITHUB_ENV
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -28,8 +27,8 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          build-args: BASE_IMAGE=${{steps.prepare-docker-image-build-metadata.outputs.DOCKER_IMAGE_BUILD_ARG_BASE_IMAGE}}
+          build-args: BASE_IMAGE=${{env.DOCKER_IMAGE_BUILD_ARG_BASE_IMAGE}}
           push: ${{github.event_name != 'pull_request'}}
           tags: |
-            ghcr.io/${{github.repository_owner}}/systemd-archlinux:${{steps.prepare-docker-image-build-metadata.outputs.DOCKER_IMAGE_TAG}}
+            ghcr.io/${{github.repository_owner}}/systemd-archlinux:${{env.DOCKER_IMAGE_TAG}}
             ghcr.io/${{github.repository_owner}}/systemd-archlinux:latest
