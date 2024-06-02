@@ -1,5 +1,5 @@
 ARG BASE_IMAGE=archlinux
-FROM $BASE_IMAGE
+FROM ${BASE_IMAGE}
 RUN rm -f $(ls -d /lib/systemd/system/sysinit.target.wants/* | grep -v systemd-tmpfiles-setup) \
 	/etc/systemd/system/*.wants/* \
 	/lib/systemd/system/anaconda.target.wants/* \
