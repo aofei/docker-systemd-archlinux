@@ -24,10 +24,11 @@ jobs:
           username: ${{github.actor}}
           password: ${{github.token}}
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
-          build-args: BASE_IMAGE=${{env.DOCKER_IMAGE_BUILD_ARG_BASE_IMAGE}}
+          build-args: |
+            BASE_IMAGE=${{env.DOCKER_IMAGE_BUILD_ARG_BASE_IMAGE}}
           push: ${{github.event_name != 'pull_request'}}
           tags: |
             ghcr.io/${{github.repository_owner}}/systemd-archlinux:${{env.DOCKER_IMAGE_TAG}}
